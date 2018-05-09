@@ -1,11 +1,5 @@
 import {Vnode} from './vnode';
 
-// 	                       --react--	     --preact--
-// 类别：	                   type	           nodeName
-// 属性包：	                 props	         attributes
-// 孩子：	                   props.children	 children
-// 数组追踪用的trace by属性：	 key	           key
-
 //   h(
 //   	 "div",
 //   	 { className: "test" },
@@ -13,16 +7,38 @@ import {Vnode} from './vnode';
 //   	 h(App)
 //   )
 export function createElement (type, props, ...children) {
-  let stack = [];
-  stack.push(...children);
+  if (type && type.constructor.name === 'Vnode') {
+    return type;
+  }
+
+  let vnodeChildren = [], simple, lastSimple = false;
   if (props && props.children) {
     if (Array.isArray(props.children)) {
-      stack.push(...props.children);
+      children.push(...props.children);
     } else {
-      stack.push(props.children);
+      children.push(props.children);
     }
+    delete props.children;
   }
-  delete props.children;
 
-  return new Vnode(type, props, children);
+  for (let child of children) {
+    if (typeof child === 'boolean' || child === null) {
+      continue;
+    }
+
+    simple = typeof child === 'number' || typeof child === 'string';
+
+    // typeof type !== 'function' ?
+    if (simple && lastSimple) {
+      vnodeChildren[vnodeChildren.length - 1] += String(child);
+    } else {
+      vnodeChildren.push(child);
+    }
+
+    lastSimple = simple;
+  }
+
+  console.log(arguments, typeof type);
+
+  return new Vnode(type, props, vnodeChildren);
 }

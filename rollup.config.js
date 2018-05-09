@@ -4,7 +4,7 @@ export default {
     file: 'dist/mreact.dev.js',
     format: 'iife',
     name: 'mreact',
-    sourcemap: true,
+    sourcemap: 'inline',
     strict: true
   }
 };

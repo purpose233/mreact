@@ -1,5 +1,7 @@
 import {diff} from './diff';
 
-export function render () {
+export function render (vnode, parent) {
   diff()
 }
+
+
