@@ -1,27 +1,25 @@
 import {isComponent, isSameTagName, setAttribute} from './common/common';
 
-const mountedComponents = [];
-
 export function renderVnodes (root, vnode) {
   let result = diff(root, vnode);
 }
 
-export function diff (element, vnode) {
-  let newElement;
+export function diff (dom, vnode) {
+  let newDom;
 
   if (typeof vnode === 'boolean' || vnode === null) {
     vnode = ''
   }
 
   if (typeof vnode === 'string' || typeof vnode === 'number') {
-    if (element && element.nodeType === 3) {
-      if (element.nodeValue !== vnode) {
-        element.nodeValue = vnode;
+    if (dom && dom.nodeType === 3) {
+      if (dom.nodeValue !== vnode) {
+        dom.nodeValue = vnode;
       }
     } else {
-      newElement = document.createTextNode(vnode);
-      if (element && element.parentNode) {
-        element.parentNode.replaceChild(newElement, element);
+      newDom = document.createTextNode(vnode);
+      if (dom && dom.parentNode) {
+        dom.parentNode.replaceChild(newDom, dom);
       }
     }
   } else {
@@ -30,21 +28,29 @@ export function diff (element, vnode) {
     } else {
       let tagName = String(vnode.type);
 
-      if (!element || !isSameTagName(element, tagName)) {
-        newElement = document.createElement(tagName);
+      if (!dom || !isSameTagName(dom, tagName)) {
+        newDom = document.createElement(tagName);
 
-        if (element) {
-          while (element.firstChild) { newElement.appendChild(element.firstChild); }
-          if (element.parentNode) { element.parentNode.replaceChild(newElement, element); }
+        if (dom) {
+          while (dom.firstChild) { newDom.appendChild(dom.firstChild); }
+          if (dom.parentNode) { dom.parentNode.replaceChild(newDom, dom); }
         }
+      } else {
+        newDom = dom;
       }
 
-      diffChildren(element.childNodes, vnode.children, element);
-      diffProps(newElement, vnode.props);
+      // if (vnode.children && vnode.children.length === 1
+      //   && typeof vnode.children[0] === 'string') {
+      //   while (newDom.firstChild) { newDom.removeChild(newDom.firstChild); }
+      //   newDom.appendChild(document.createTextNode(vnode.children[0]));
+      // } else {
+      // }
+      diffChildren(newDom.childNodes, vnode.children, newDom);
+      diffProps(newDom, vnode.props);
     }
   }
 
-  return element;
+  return newDom;
 }
 
 function diffChildren (children, vChildren, parent) {
@@ -67,20 +73,20 @@ function diffChildren (children, vChildren, parent) {
   }
 
   if (vChildren.length > 0) {
-    for (let i = 0; i < vChildren[i]; i++) {
+    for (let i = 0; i < vChildren.length; i++) {
       let vChild = vChildren[i];
       let child = null;
 
-      let key = vChild.props.key;
+      let key = vChild.props ? vChild.props.key : null;
       if (key !== null && key !== undefined && keyedChildren[key] !== undefined) {
         child = keyedChildren[key];
         delete keyedChildren[key];
         keyedLen--;
       } else {
         let tagName = vChild.type;
-        for (let j = 0; j < children.length; j++) {
-          if (isSameTagName(children[j], tagName)) {
-            child = children[j];
+        for (let j = 0; j < unkeyedChildren.length; j++) {
+          if (isSameTagName(unkeyedChildren[j], tagName)) {
+            child = unkeyedChildren[j];
             children.splice(j, 1);
             break;
           }
@@ -97,6 +103,14 @@ function diffChildren (children, vChildren, parent) {
         }
       }
     }
+  }
+
+  // remove the rest child of children
+  for (let key in keyedChildren) {
+    parent.removeChild(keyedChildren[key]);
+  }
+  for (let i = 0; i < unkeyedChildren.length; i++) {
+    parent.removeChild(unkeyedChildren[i]);
   }
 }
 

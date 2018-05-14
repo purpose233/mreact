@@ -11,7 +11,7 @@
 //   }
 // }
 
-console.log(mreact.createElement(
+let vnode = mreact.createElement(
   <div className={'mydiv'}>
     <div>
       <p style={{ color: '#111' }}>{'he'}{'ll'}{0}</p>
@@ -19,5 +19,13 @@ console.log(mreact.createElement(
     <div>
       <p style={{ fontSize: 18 }}>world</p>
     </div>
-  </div>));
+  </div>);
 
+// let vnode = mreact.createElement(
+//   <div className={'mydiv'}>
+//     <p style={{ color: '#111' }}>{'he'}{'ll'}{0}</p>
+//     <p style={{ fontSize: 18 }}>world</p>
+//   </div>);
+
+let root = document.getElementById('root');
+mreact.render(vnode, root);

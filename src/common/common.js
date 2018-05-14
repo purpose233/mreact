@@ -3,7 +3,7 @@ export function isComponent (vnode) {
 }
 
 export function isSameTagName (dom, tagName) {
-  return dom && dom.tagName.toLowerCase() === tagName.toLowerCase();
+  return dom && dom.tagName && dom.tagName.toLowerCase() === tagName.toLowerCase();
 }
 
 const IS_NON_DIMENSIONAL = /acit|ex(?:s|g|n|p|$)|rph|ows|mnc|ntw|ine[ch]|zoo|^ord/i;
