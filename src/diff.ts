@@ -1,5 +1,6 @@
 import {Vnode} from "./vnode";
-import {isSameTagName, isValidAttribute, setAttribute} from "./utils";
+import {AttributeNode, isSameTagName, isSameType,
+  isValidAttribute, setAttribute} from "./utils";
 import {Component} from "./component";
 
 // TODO: the return value of diff might not be useful
@@ -33,6 +34,8 @@ export function diff(parentDom: Node,
       let component: Component;
       if (oldVnode !== newVnode) {
         if (oldVnode && oldVnode._component) {
+          // copy the data of oldVnode,
+          // but actually, i don't know whether this will ever be reached
           newVnode._component = component = oldVnode._component;
           newVnode._dom = oldVnode._dom;
         } else {
@@ -48,6 +51,15 @@ export function diff(parentDom: Node,
 
         component._vnode = newVnode;
         component._parentDom = parentDom;
+      } else {
+        component = newVnode._component;
+      }
+
+      // update state
+      if (!isNewComponent) {
+        component.state = component._nextState;
+      } else {
+        component._nextState = component.state;
       }
 
       // TODO: life cycle
@@ -59,23 +71,22 @@ export function diff(parentDom: Node,
 
       component._innerVnode = newInnerVnode;
       component._dirty = false;
-    } else {
-      if (!isSameTagName(dom, newVnode.type)) {
-        newDom = document.createElement(newVnode.type);
+    } else if (!isSameTagName(dom, newVnode.type)) {
+      newDom = document.createElement(newVnode.type);
 
-        if (dom) {
-          while (dom.firstChild) {
-            newDom.appendChild(dom.firstChild);
-          }
+      if (dom) {
+        while (dom.firstChild) {
+          newDom.appendChild(dom.firstChild);
         }
-        if (dom && dom.parentNode) {
-          parentDom.replaceChild(newDom, dom);
-        } else {
-          parentDom.appendChild(newDom);
-        }
-        dom = newDom;
       }
+      if (dom && dom.parentNode) {
+        parentDom.replaceChild(newDom, dom);
+      } else {
+        parentDom.appendChild(newDom);
+      }
+      dom = newDom;
     }
+    newVnode._dom = dom;
 
     diffChildren(dom, newVnode, oldVnode);
     diffProps(dom, newVnode, oldVnode);
@@ -86,7 +97,7 @@ export function diff(parentDom: Node,
 
 export function diffChildren(parentDom: Node,
                              newParentVnode: Vnode, oldParentVnode: Vnode): void {
-  let keyedChildren = {}, unkeyedChildren = [];
+  let keyedChildren = {}, unkeyedChildren: Vnode[] = [];
   if (oldParentVnode && oldParentVnode.children) {
     for (let child of oldParentVnode.children) {
       const key = child.props && child.props.key;
@@ -104,7 +115,7 @@ export function diffChildren(parentDom: Node,
         delete keyedChildren[key];
       } else {
         for (let i = 0; i < unkeyedChildren.length; i++) {
-          if (isSameTagName(unkeyedChildren[i], child.type)) {
+          if (isSameType(unkeyedChildren[i], child)) {
             oldChild = unkeyedChildren[i];
             unkeyedChildren.splice(i, 1);
             break;
@@ -116,11 +127,13 @@ export function diffChildren(parentDom: Node,
     }
   }
 
+  console.log(keyedChildren, unkeyedChildren);
+
   for (let key in keyedChildren) {
-    parentDom.removeChild(keyedChildren[key]);
+    parentDom.removeChild(keyedChildren[key]._dom);
   }
   for (let i = 0; i < unkeyedChildren.length; i++) {
-    parentDom.removeChild(unkeyedChildren[i]);
+    parentDom.removeChild(unkeyedChildren[i]._dom);
   }
 }
 
@@ -132,14 +145,14 @@ export function diffProps(dom: Node,
   if (newProps) {
     for (let name in newProps) {
       if (!isValidAttribute(name)) { continue; }
-      setAttribute(<HTMLElement>dom, name, newProps[name], oldProps && oldProps[name]);
+      setAttribute(<AttributeNode>dom, name, newProps[name], oldProps && oldProps[name]);
     }
   }
 
   if (oldProps) {
     for (let name in oldProps) {
       if (!isValidAttribute(name) || newProps[name]) { continue; }
-      setAttribute(<HTMLElement>dom, name, null, oldProps[name]);
+      setAttribute(<AttributeNode>dom, name, null, oldProps[name]);
     }
   }
 }

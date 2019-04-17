@@ -7,8 +7,8 @@ const UpdateQueue: Component[] = [];
 export class Component {
   props: any;
   context: any;
-  state: any = {};
-  _nextState: any = this.state;
+  state: any;
+  _nextState: any;
   _vnode: Vnode = null;
   _innerVnode: Vnode = null;
   _parentDom: Node;
@@ -30,10 +30,12 @@ export class Component {
       Object.assign(nextState, update(nextState, this.props));
     } else {
       Object.assign(nextState, update);
-
     }
+    this._nextState = nextState;
     this._didUpdateCallback.push(callback);
 
+    // and the current state won't change until next tick and diff happens,
+    // so any setState operation based on this.state won't work correctly.
     if (!this._dirty) {
       this._dirty = true;
       enqueueComponent(this);

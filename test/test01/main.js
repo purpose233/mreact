@@ -1,4 +1,4 @@
-// Tell Babel to transform JSX into h() calls:
+// Tell Babel to transform JSX into mreact.createElement() calls:
 /** @jsx mreact.createElement */
 
 const Card = () => (
@@ -11,14 +11,53 @@ const Card = () => (
 class MyComponent extends mreact.Component {
   constructor(props) {
     super(props);
+    this.state = {
+      count: 0,
+      id: 'abc'
+    };
+    this.onClick = this.onClick.bind(this);
+  }
+
+  onClick() {
+    console.log('On click');
+    this.setState({
+      count: this.state.count + 1
+    })
   }
 
   render () {
     return (
       <div
+        onClick={this.onClick}
         className={'my-component'}
         style={{width: 200, height: 100, background: 'red'}}
       ></div>);
+  }
+}
+
+class Counter extends mreact.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      count: 0,
+      id: 'abc'
+    };
+    this.onClick = this.onClick.bind(this);
+  }
+
+  onClick() {
+    console.log('On click');
+    this.setState({
+      count: this.state.count + 1
+    })
+  }
+
+  render() {
+    return (
+      <div onClick={this.onClick}>
+        {'count: ' + this.state.count}
+      </div>
+    );
   }
 }
 
@@ -36,7 +75,11 @@ class MyComponent extends mreact.Component {
 //   </div>)
 
 let root = document.getElementById('root');
+// mreact.render((
+//     <MyComponent>
+//       <Card/>
+//     </MyComponent>), root);
 mreact.render((
     <MyComponent>
-      <Card/>
+      <Counter/>
     </MyComponent>), root);
