@@ -1,21 +1,25 @@
 import {Vnode} from "./vnode";
 import {isSameTagName, isValidAttribute, setAttribute} from "./utils";
+import {Component} from "./component";
 
 // TODO: the return value of diff might not be useful
 export function diff(parentDom: Node,
-                     newVnode: Vnode, oldVnode: Vnode): Node {
+                     newVnode: Vnode, oldVnode: Vnode,
+                     isForce: boolean = false): Node {
   // Note that for newVnode and oldVnode might be equal
   // when vnode represent a component need to rerender.
 
-  let dom = oldVnode ? oldVnode.dom : null, newDom;
+  console.log(newVnode);
+
+  let dom = oldVnode ? oldVnode._dom : null, newDom, isNewComponent = false;
 
   if (newVnode.type == null) {
     if (dom && dom.nodeType === Node.TEXT_NODE) {
-      if (newVnode.text !== dom.nodeValue) {
-        dom.nodeValue = newVnode.text;
+      if (newVnode._text !== dom.nodeValue) {
+        dom.nodeValue = newVnode._text;
       }
     } else {
-      newDom = document.createTextNode(newVnode.text);
+      newDom = document.createTextNode(newVnode._text);
       if (dom && dom.parentNode) {
         dom.parentNode.replaceChild(newDom, dom);
       } else {
@@ -23,24 +27,54 @@ export function diff(parentDom: Node,
       }
       dom = newDom;
     }
-    newVnode.dom = dom;
+    newVnode._dom = dom;
   } else {
-    // TODO: class component or function component or fragment
-
-    if (!isSameTagName(dom, newVnode.type)) {
-      newDom = document.createElement(newVnode.type);
-
-      if (dom) {
-        while (dom.firstChild) {
-          newDom.appendChild(dom.firstChild);
+    if (typeof newVnode.type === 'function') {
+      let component: Component;
+      if (oldVnode !== newVnode) {
+        if (oldVnode && oldVnode._component) {
+          newVnode._component = component = oldVnode._component;
+          newVnode._dom = oldVnode._dom;
+        } else {
+          isNewComponent = true;
+          if (newVnode.type.prototype && newVnode.type.prototype.render) {
+            newVnode._component = component = new (<any>newVnode.type)(newVnode.props, null)
+          } else {
+            newVnode._component = component = new Component(newVnode.props, null);
+            component.constructor = newVnode.type;
+            (<any>component).render = doRender;
+          }
         }
+
+        component._vnode = newVnode;
+        component._parentDom = parentDom;
       }
-      if (dom && dom.parentNode) {
-        parentDom.replaceChild(newDom, dom);
-      } else {
-        parentDom.appendChild(newDom);
+
+      // TODO: life cycle
+
+      const oldInnerVnode = component._innerVnode;
+      const newInnerVnode: Vnode = (<any>component).render(component.props, component.state, component.context);
+      // diff inner vnode
+      dom = diff(parentDom, newInnerVnode, oldInnerVnode);
+
+      component._innerVnode = newInnerVnode;
+      component._dirty = false;
+    } else {
+      if (!isSameTagName(dom, newVnode.type)) {
+        newDom = document.createElement(newVnode.type);
+
+        if (dom) {
+          while (dom.firstChild) {
+            newDom.appendChild(dom.firstChild);
+          }
+        }
+        if (dom && dom.parentNode) {
+          parentDom.replaceChild(newDom, dom);
+        } else {
+          parentDom.appendChild(newDom);
+        }
+        dom = newDom;
       }
-      dom = newDom;
     }
 
     diffChildren(dom, newVnode, oldVnode);
@@ -108,4 +142,8 @@ export function diffProps(dom: Node,
       setAttribute(<HTMLElement>dom, name, null, oldProps[name]);
     }
   }
+}
+
+function doRender(props, state, context) {
+  return this.constructor(props, context);
 }

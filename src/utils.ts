@@ -46,3 +46,8 @@ export function setAttribute (dom: HTMLElement, name: string, value: any, old: a
     }
   }
 }
+
+export function defer (f) {
+  Promise.resolve().then(f);
+  // new Promise(resolve => { resolve(); }).then(() => { f(); });
+}

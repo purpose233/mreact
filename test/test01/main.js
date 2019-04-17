@@ -1,41 +1,42 @@
 // Tell Babel to transform JSX into h() calls:
 /** @jsx mreact.createElement */
 
-// const Card = () => {
-//   <div className={'card'}></div>
-// };
-//
-// class Component {
-//   render () {
-//     return (<div/>);
-//   }
-// }
+const Card = () => (
+  <div
+    className={'card'}
+    style={{width: 150, height: 100, background: 'blue'}}
+  ></div>
+);
 
-// let vnode = mreact.createElement(
+class MyComponent extends mreact.Component {
+  constructor(props) {
+    super(props);
+  }
+
+  render () {
+    return (
+      <div
+        className={'my-component'}
+        style={{width: 200, height: 100, background: 'red'}}
+      ></div>);
+  }
+}
+
+// (
 //   <div className={'mydiv'}>
+//     <Card/>
+//     <MyComponent/>
 //     <div>
 //       balabala
-//       <p style={{ color: '#111' }}>{'he'}{'ll'}{0}</p>
+//       <p style={{ color: '#369' }}>{'he'}{'ll'}{0}</p>
 //     </div>
 //     <div>
-//       <p style={{ fontSize: 18 }}>world</p>
+//       <p style={{ fontSize: 22 }}>world</p>
 //     </div>
-//   </div>);
-
-// let vnode = mreact.createElement(
-//   <div className={'mydiv'}>
-//     <p style={{ color: '#111' }}>{'he'}{'ll'}{0}</p>
-//     <p style={{ fontSize: 18 }}>world</p>
-//   </div>);
+//   </div>)
 
 let root = document.getElementById('root');
 mreact.render((
-  <div className={'mydiv'}>
-    <div>
-      balabala
-      <p style={{ color: '#369' }}>{'he'}{'ll'}{0}</p>
-    </div>
-    <div>
-      <p style={{ fontSize: 22 }}>world</p>
-    </div>
-  </div>), root);
+    <MyComponent>
+      <Card/>
+    </MyComponent>), root);

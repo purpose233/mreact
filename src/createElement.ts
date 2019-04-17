@@ -42,7 +42,5 @@ export function createElement(type: Vnode | string | null,
     vnodeChildren.push(new Vnode(null, null, null, childText));
   }
 
-  // console.log(arguments);
-
   return new Vnode(type, props, vnodeChildren);
 }
