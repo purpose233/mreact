@@ -51,6 +51,38 @@ class Counter extends mreact.Component {
   }
 }
 
+class MyCounterParent extends mreact.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      count: 0,
+      id: 'abc'
+    };
+    this.onClick = this.onClick.bind(this);
+  }
+
+  onClick() {
+    console.log('On click');
+    this.setState({
+      count: this.state.count + 1
+    })
+  }
+
+  render() {
+    return (
+      <div
+        style={{width: 200, height: 100, background: 'red'}}
+        onClick={this.onClick}>
+        <MyCounterChild count={this.state.count}/>
+      </div>
+    );
+  }
+}
+
+const MyCounterChild = (props) => (
+  <p>{'Count: ' + props.count}</p>
+);
+
 // (
 //   <div className={'mydiv'}>
 //     <Card/>
@@ -69,7 +101,9 @@ let root = document.getElementById('root');
 //     <MyComponent>
 //       <Card/>
 //     </MyComponent>), root);
+// mreact.render((
+//     <MyComponent>
+//       <Counter/>
+//     </MyComponent>), root);
 mreact.render((
-    <MyComponent>
-      <Counter/>
-    </MyComponent>), root);
+  <MyCounterParent />), root);
