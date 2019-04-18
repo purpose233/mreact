@@ -3,16 +3,15 @@ import {AttributeNode, isSameTagName, isSameType,
   isValidAttribute, setAttribute} from "./utils";
 import {Component} from "./component";
 
+// The components that have mounted in diff operations.
+// export const MountedComponents: Component[] = [];
+
 // TODO: the return value of diff might not be useful
 export function diff(parentDom: Node,
                      newVnode: Vnode, oldVnode: Vnode,
                      isForce: boolean = false): Node {
-  // Note that for newVnode and oldVnode might be equal
-  // when vnode represent a component need to rerender.
-
-  console.log(newVnode);
-
-  let dom = oldVnode ? oldVnode._dom : null, newDom, isNewComponent = false;
+  let dom = oldVnode ? oldVnode._dom : null, newDom,
+  isNewComponent = false, oldState, oldProps;
 
   if (newVnode.type == null) {
     if (dom && dom.nodeType === Node.TEXT_NODE) {
@@ -32,10 +31,11 @@ export function diff(parentDom: Node,
   } else {
     if (typeof newVnode.type === 'function') {
       let component: Component;
+      // NewVnode and oldVnode might be equal when vnode represent a component need to rerender.
       if (oldVnode !== newVnode) {
         if (oldVnode && oldVnode._component) {
-          // copy the data of oldVnode,
-          // but actually, i don't know whether this will ever be reached
+          // Copy the data of oldVnode, but actually,
+          // i don't know whether this will ever be reached.
           newVnode._component = component = oldVnode._component;
           newVnode._dom = oldVnode._dom;
         } else {
@@ -55,14 +55,41 @@ export function diff(parentDom: Node,
         component = newVnode._component;
       }
 
+      // Life cycle
+      if (isNewComponent) {
+        if ((<any>component).componentWillMount) {
+          (<any>component).componentWillMount();
+        }
+        // MountedComponents.push(component);
+      } else {
+        // TODO: need to pass context to hooks.
+        if (!isForce && (<any>component).componentWillReceiveProps) {
+          // args: new props, new context
+          (<any>component).componentWillReceiveProps(newVnode.props);
+        }
+        if (!isForce && (<any>component).shouldComponentUpdate &&
+          // args: new props, new state, new context
+          !(<any>component).shouldComponentUpdate(newVnode.props, component._nextState)) {
+          return dom;
+        }
+        if (!isNewComponent && (<any>component).componentWillUpdate) {
+          // args: new props, new state, new context
+          (<any>component).componentWillUpdate(newVnode.props, component._nextState)
+        }
+        if (isNewComponent && (<any>component).componentDidMount) {
+          (<any>component).componentDidMount();
+        }
+        oldProps = component.props;
+        component.props = newVnode.props;
+      }
+
       // update state
       if (!isNewComponent) {
+        oldState = component.state;
         component.state = component._nextState;
       } else {
         component._nextState = component.state;
       }
-
-      // TODO: life cycle
 
       const oldInnerVnode = component._innerVnode;
       const newInnerVnode: Vnode = (<any>component).render(component.props, component.state, component.context);
@@ -71,6 +98,10 @@ export function diff(parentDom: Node,
 
       component._innerVnode = newInnerVnode;
       component._dirty = false;
+
+      if (!isNewComponent && (<any>component).componentDidUpdate) {
+        (<any>component).componentDidUpdate(oldProps, oldState);
+      }
     } else if (!isSameTagName(dom, newVnode.type)) {
       newDom = document.createElement(newVnode.type);
 
@@ -85,11 +116,11 @@ export function diff(parentDom: Node,
         parentDom.appendChild(newDom);
       }
       dom = newDom;
+
+      diffChildren(dom, newVnode, oldVnode);
+      diffProps(dom, newVnode, oldVnode);
     }
     newVnode._dom = dom;
-
-    diffChildren(dom, newVnode, oldVnode);
-    diffProps(dom, newVnode, oldVnode);
   }
 
   return dom;
@@ -97,6 +128,7 @@ export function diff(parentDom: Node,
 
 export function diffChildren(parentDom: Node,
                              newParentVnode: Vnode, oldParentVnode: Vnode): void {
+  // Divide all child into keyed and unkeyed.
   let keyedChildren = {}, unkeyedChildren: Vnode[] = [];
   if (oldParentVnode && oldParentVnode.children) {
     for (let child of oldParentVnode.children) {
@@ -127,13 +159,12 @@ export function diffChildren(parentDom: Node,
     }
   }
 
-  console.log(keyedChildren, unkeyedChildren);
-
+  // Delete child which is not contained by newVnode.
   for (let key in keyedChildren) {
-    parentDom.removeChild(keyedChildren[key]._dom);
+    unmount(keyedChildren[key], parentDom);
   }
   for (let i = 0; i < unkeyedChildren.length; i++) {
-    parentDom.removeChild(unkeyedChildren[i]._dom);
+    unmount(unkeyedChildren[i], parentDom);
   }
 }
 
@@ -149,6 +180,7 @@ export function diffProps(dom: Node,
     }
   }
 
+  // Remove outdated props
   if (oldProps) {
     for (let name in oldProps) {
       if (!isValidAttribute(name) || newProps[name]) { continue; }
@@ -159,4 +191,12 @@ export function diffProps(dom: Node,
 
 function doRender(props, state, context) {
   return this.constructor(props, context);
+}
+
+function unmount(vnode: Vnode, parentDom: Node): void {
+  if (!vnode) { return; }
+  if (vnode._component && (<any>vnode._component).componentWillUnmount) {
+    (<any>vnode._component).componentWillUnmount();
+  }
+  parentDom.removeChild(vnode._dom);
 }

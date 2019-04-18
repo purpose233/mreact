@@ -11,27 +11,17 @@ const Card = () => (
 class MyComponent extends mreact.Component {
   constructor(props) {
     super(props);
-    this.state = {
-      count: 0,
-      id: 'abc'
-    };
-    this.onClick = this.onClick.bind(this);
-  }
-
-  onClick() {
-    console.log('On click');
-    this.setState({
-      count: this.state.count + 1
-    })
   }
 
   render () {
     return (
       <div
-        onClick={this.onClick}
         className={'my-component'}
         style={{width: 200, height: 100, background: 'red'}}
-      ></div>);
+      >
+        <p>MyComponent</p>
+        { this.props.children }
+      </div>);
   }
 }
 
