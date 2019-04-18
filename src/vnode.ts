@@ -7,17 +7,16 @@ export type ComponentChild = Vnode | object | string
 export class Vnode {
   // TODO: how to present the derived class of Component?
   type: string | any;
+  // props contains children
   props: any;
-  children: Vnode[];
+  // children: Vnode[];
   _text: string;
   _dom: Node;
   _component: Component;
 
-  constructor(type: string | null, props: any,
-              children: Vnode[], text?: string) {
+  constructor(type: string | null, props: any, text?: string) {
     this.type = type;
     this.props = props;
-    this.children = children;
     this._text = text;
   }
 }

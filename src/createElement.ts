@@ -9,13 +9,13 @@ export function createElement(type: Vnode | string | null,
 
   let vnodeChildren: Vnode[] = [];
   let simple: boolean, lastSimple: boolean = false, childText: string = '';
-  if (props && props.children) {
+  if (!props) { props = {}; }
+  if (props.children) {
     if (Array.isArray(props.children)) {
       children.push(...props.children);
     } else {
       children.push(props.children);
     }
-    delete props.children;
   }
 
   for (let child of children) {
@@ -29,7 +29,7 @@ export function createElement(type: Vnode | string | null,
       childText += String(child);
     } else {
       if (lastSimple) {
-        vnodeChildren.push(new Vnode(null, null, null, childText));
+        vnodeChildren.push(new Vnode(null, null, childText));
         childText = '';
       }
       // if not simple node then must be Vnode
@@ -39,8 +39,12 @@ export function createElement(type: Vnode | string | null,
     lastSimple = simple;
   }
   if (childText !== '') {
-    vnodeChildren.push(new Vnode(null, null, null, childText));
+    vnodeChildren.push(new Vnode(null, null, childText));
   }
 
-  return new Vnode(type, props, vnodeChildren);
+  if (vnodeChildren.length > 0) {
+    props.children = vnodeChildren;
+  }
+
+  return new Vnode(type, props);
 }

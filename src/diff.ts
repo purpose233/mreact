@@ -1,6 +1,8 @@
 import {Vnode} from "./vnode";
-import {AttributeNode, isSameTagName, isSameType,
-  isValidAttribute, setAttribute} from "./utils";
+import {
+  AttributeNode, getVnodeChildren, isSameTagName, isSameType,
+  isValidAttribute, setAttribute
+} from "./utils";
 import {Component} from "./component";
 
 // The components that have mounted in diff operations.
@@ -102,20 +104,22 @@ export function diff(parentDom: Node,
       if (!isNewComponent && (<any>component).componentDidUpdate) {
         (<any>component).componentDidUpdate(oldProps, oldState);
       }
-    } else if (!isSameTagName(dom, newVnode.type)) {
-      newDom = document.createElement(newVnode.type);
+    } else {
+      if (!isSameTagName(dom, newVnode.type)) {
+        newDom = document.createElement(newVnode.type);
 
-      if (dom) {
-        while (dom.firstChild) {
-          newDom.appendChild(dom.firstChild);
+        if (dom) {
+          while (dom.firstChild) {
+            newDom.appendChild(dom.firstChild);
+          }
         }
+        if (dom && dom.parentNode) {
+          parentDom.replaceChild(newDom, dom);
+        } else {
+          parentDom.appendChild(newDom);
+        }
+        dom = newDom;
       }
-      if (dom && dom.parentNode) {
-        parentDom.replaceChild(newDom, dom);
-      } else {
-        parentDom.appendChild(newDom);
-      }
-      dom = newDom;
 
       diffChildren(dom, newVnode, oldVnode);
       diffProps(dom, newVnode, oldVnode);
@@ -130,33 +134,30 @@ export function diffChildren(parentDom: Node,
                              newParentVnode: Vnode, oldParentVnode: Vnode): void {
   // Divide all child into keyed and unkeyed.
   let keyedChildren = {}, unkeyedChildren: Vnode[] = [];
-  if (oldParentVnode && oldParentVnode.children) {
-    for (let child of oldParentVnode.children) {
-      const key = child.props && child.props.key;
-      if (key != null) { keyedChildren[key] = child; }
-      else { unkeyedChildren.push(child); }
-    }
+  // handle node array, eg. this.props.children
+  for (let child of getVnodeChildren(oldParentVnode)) {
+    const key = child.props && child.props.key;
+    if (key != null) { keyedChildren[key] = child; }
+    else { unkeyedChildren.push(child); }
   }
 
-  if (newParentVnode && newParentVnode.children) {
-    for (let child of newParentVnode.children) {
-      const key = child.props && child.props.key;
-      let oldChild = null;
-      if (key != null) {
-        oldChild = keyedChildren[key];
-        delete keyedChildren[key];
-      } else {
-        for (let i = 0; i < unkeyedChildren.length; i++) {
-          if (isSameType(unkeyedChildren[i], child)) {
-            oldChild = unkeyedChildren[i];
-            unkeyedChildren.splice(i, 1);
-            break;
-          }
+  for (let child of getVnodeChildren(newParentVnode)) {
+    const key = child.props && child.props.key;
+    let oldChild = null;
+    if (key != null) {
+      oldChild = keyedChildren[key];
+      delete keyedChildren[key];
+    } else {
+      for (let i = 0; i < unkeyedChildren.length; i++) {
+        if (isSameType(unkeyedChildren[i], child)) {
+          oldChild = unkeyedChildren[i];
+          unkeyedChildren.splice(i, 1);
+          break;
         }
       }
-
-      diff(parentDom, child, oldChild);
     }
+
+    diff(parentDom, child, oldChild);
   }
 
   // Delete child which is not contained by newVnode.

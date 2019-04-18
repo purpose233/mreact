@@ -79,3 +79,16 @@ export function defer (f) {
   Promise.resolve().then(f);
   // new Promise(resolve => { resolve(); }).then(() => { f(); });
 }
+
+export function getVnodeChildren (vnode: Vnode): Vnode[] {
+  // Whether vnode.props.children exists, it will return an array,
+  // so that the caller won't need to judge again.
+  const children = [];
+  if (vnode && vnode.props && vnode.props.children) {
+    for (let child of vnode.props.children) {
+      if (Array.isArray(child)) { children.push(...child); }
+      else { children.push(child); }
+    }
+  }
+  return children;
+}

@@ -55,7 +55,7 @@ function enqueueComponent(component: Component) {
 }
 
 function flushUpdateQueue() {
-  // TODO: the order of flushing matters
+  // TODO: the order of flushing matters, maybe the leaf node get flushed first.
   while (UpdateQueue.length > 0) {
     const component = UpdateQueue.pop();
     if (component._dirty) {
