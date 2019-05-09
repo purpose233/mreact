@@ -3,6 +3,7 @@ import {Vnode, ComponentChild} from "./vnode";
 export function createElement(type: Vnode | string | null,
                               props: any,
                               ...children: ComponentChild[]): Vnode {
+  console.log(arguments);
   if (type instanceof Vnode) {
     return type;
   }

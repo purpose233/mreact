@@ -8,6 +8,7 @@ export class Component {
   props: any;
   context: any;
   state: any;
+  _legacyContext: any;
   _nextState: any;
   _vnode: Vnode = null;
   _innerVnode: Vnode = null;
@@ -43,12 +44,12 @@ export class Component {
   }
 
   forceUpdate(callback: Function, isForce: boolean = true) {
-    diff(this._parentDom, this._vnode, this._vnode, isForce);
+    diff(this._parentDom, this._vnode, this._vnode, this._legacyContext, isForce);
     if (callback) { callback(); }
   }
 }
 
-function enqueueComponent(component: Component) {
+export function enqueueComponent(component: Component) {
   if (1 === UpdateQueue.push(component)) {
     defer(flushUpdateQueue);
   }

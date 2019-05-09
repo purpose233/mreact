@@ -11,6 +11,8 @@ import {Component} from "./component";
 // TODO: the return value of diff might not be useful
 export function diff(parentDom: Node,
                      newVnode: Vnode, oldVnode: Vnode,
+                     // the arg context represent the legacy context
+                     context: any,
                      isForce: boolean = false): Node {
   let dom = oldVnode ? oldVnode._dom : null, newDom,
   isNewComponent = false, oldState, oldProps;
@@ -31,6 +33,14 @@ export function diff(parentDom: Node,
     }
     newVnode._dom = dom;
   } else {
+    let ctx = null, provider, legacyCtx;
+    if (newVnode.type._contextRef) {
+      provider = newVnode.type._contextRef._providerComponent;
+      ctx = newVnode.type._contextRef.value;
+    } else {
+      ctx = context;
+    }
+
     if (typeof newVnode.type === 'function') {
       let component: Component;
       // NewVnode and oldVnode might be equal when vnode represent a component need to rerender.
@@ -43,14 +53,13 @@ export function diff(parentDom: Node,
         } else {
           isNewComponent = true;
           if (newVnode.type.prototype && newVnode.type.prototype.render) {
-            newVnode._component = component = new (<any>newVnode.type)(newVnode.props, null)
+            newVnode._component = component = new (<any>newVnode.type)(newVnode.props, ctx)
           } else {
-            newVnode._component = component = new Component(newVnode.props, null);
+            newVnode._component = component = new Component(newVnode.props, ctx);
             component.constructor = newVnode.type;
             (<any>component).render = doRender;
           }
         }
-
         component._vnode = newVnode;
         component._parentDom = parentDom;
       } else {
@@ -67,22 +76,31 @@ export function diff(parentDom: Node,
         // TODO: need to pass context to hooks.
         if (!isForce && (<any>component).componentWillReceiveProps) {
           // args: new props, new context
-          (<any>component).componentWillReceiveProps(newVnode.props);
+          (<any>component).componentWillReceiveProps(newVnode.props, ctx);
         }
         if (!isForce && (<any>component).shouldComponentUpdate &&
           // args: new props, new state, new context
-          !(<any>component).shouldComponentUpdate(newVnode.props, component._nextState)) {
+          !(<any>component).shouldComponentUpdate(newVnode.props, component._nextState, ctx)) {
           return dom;
         }
         if (!isNewComponent && (<any>component).componentWillUpdate) {
           // args: new props, new state, new context
-          (<any>component).componentWillUpdate(newVnode.props, component._nextState)
+          (<any>component).componentWillUpdate(newVnode.props, component._nextState, ctx)
         }
         if (isNewComponent && (<any>component).componentDidMount) {
           (<any>component).componentDidMount();
         }
         oldProps = component.props;
         component.props = newVnode.props;
+      }
+
+      if (provider) {
+        provider._sub(component);
+      }
+      // get legacy context
+      if ((<any>component).getChildContext) {
+        const newCtx = (<any>component).getChildContext();
+        legacyCtx = Object.assign(Object.assign({}, context), newCtx);
       }
 
       // update state
@@ -92,11 +110,13 @@ export function diff(parentDom: Node,
       } else {
         component._nextState = component.state;
       }
+      component.context = ctx;
+      component._legacyContext = context;
 
       const oldInnerVnode = component._innerVnode;
       const newInnerVnode: Vnode = (<any>component).render(component.props, component.state, component.context);
       // diff inner vnode
-      dom = diff(parentDom, newInnerVnode, oldInnerVnode);
+      dom = diff(parentDom, newInnerVnode, oldInnerVnode, legacyCtx);
 
       component._innerVnode = newInnerVnode;
       component._dirty = false;
@@ -157,7 +177,7 @@ export function diffChildren(parentDom: Node,
       }
     }
 
-    diff(parentDom, child, oldChild);
+    diff(parentDom, child, oldChild, null);
   }
 
   // Delete child which is not contained by newVnode.

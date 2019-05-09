@@ -105,5 +105,12 @@ let root = document.getElementById('root');
 //     <MyComponent>
 //       <Counter/>
 //     </MyComponent>), root);
+// mreact.render((
+//   <MyCounterParent />), root);
+
 mreact.render((
-  <MyCounterParent />), root);
+  <div id="foo">
+    <span>Hello, world!</span>
+    <button onClick={ e => alert("hi!") }>Click Me</button>
+  </div>
+), root);
